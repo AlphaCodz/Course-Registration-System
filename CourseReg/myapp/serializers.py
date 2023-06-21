@@ -1,4 +1,6 @@
-from rest_framework import serializers
+from rest_framework import serializers, exceptions
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import MainUser
 
 class StudentSerializer(serializers.ModelSerializer):
@@ -21,3 +23,34 @@ class StudentSerializer(serializers.ModelSerializer):
         return student
         
         
+        
+# SIMPLEJWT SERIALIZER
+
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields.pop('username')
+        
+    def validate(self, attrs):
+        matric_number = attrs.get("matric_number")
+        password = attrs.get("password")
+
+        # Validate matric number and password
+        if matric_number and password:
+            try:
+                user = MainUser.objects.get(matric_number=matric_number)
+                if user.check_password(password):
+                    if not user.is_active:
+                        raise exceptions.AuthenticationFailed("Student account is disabled.")
+                    refresh = self.get_token(user)
+                    data = {
+                        "refresh": str(refresh),
+                        "access": str(refresh.access_token),
+                    }
+                    return data
+            except MainUser.DoesNotExist:
+                pass
+
+            raise exceptions.AuthenticationFailed("Invalid matric number or password.")
+        else:
+            raise exceptions.AuthenticationFailed("Matric number and password are required.")
