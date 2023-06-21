@@ -16,7 +16,7 @@ class StudentSerializer(serializers.ModelSerializer):
         student.first_name = validated_data["first_name"]
         student.last_name = validated_data["last_name"]
         student.email = validated_data["email"]
-        student.is_student = True
+        student.is_student=True
         student.save()
         return student
         
